@@ -8,38 +8,45 @@ import functools
 import argparse
 
 
-# PATH TO CIF FILES (acquired from pdb)
-directory = "./cif_models/"
 
 
 def pickle_coordinates(pdbid, partition):
+    if not os.path.exists('coordinate_dicts'):
+        try:
+            os.makedirs('coordinate_dicts')
+        except:
+            print("Failed to create deposition directory. Exiting")
+
     picklename = "./coordinate_dicts/{}.pkl".format(pdbid)
     output     = open(picklename, 'wb')
     pickle.dump(partition, output)
-    print("Saved successfully to {}/coordinate_dicts/{}.pkl".format(os.getcwd(), pdbid))
+
+    print("Saved successfully to {}/coordinate_dicts/{}.pkl\n".format(os.getcwd(), pdbid))
     output.close()
 
     
 def save_molecule_as_csv(pdbid, partition):
     print("Length of partition: ", len(partition))
-    print("Parsing to .csv...")
-
+    print("Parsing to .csv ...")
 
     df = pd.DataFrame({key: pd.Series(value) for key, value in partition.items()})
 
     for kvpair in partition:
-        if not os.path.exists("{}".format(pdbid)):
+        if not os.path.exists("./coordinate_csvs/"):
             try:
-                os.makedirs('{}'.format(pdbid))
+                os.makedirs("./coordinate_csvs/")
             except:
-                print("Failed to create directory for molecule. Exiting")
+                print("Failed to create deposition directory(check permissions, perhaps). Exiting\n")
     outpath = './coordinate_csvs/{}.csv'.format(pdbid, pdbid)
     df.to_csv(outpath, index=True)
-    print("Saved coordinates to {}.csv ".format(pdbid))
+    print("Saved coordinates to {}.csv\n".format(pdbid))
+
+# PATH TO CIF FILES (acquired from pdb)
+directory = "./cif_models/"
 
 
 # Usage: call with the id of the structure
-# Ex. python3 extract_coordinates.py 5jvg
+# Ex. python3 extract_coordinates.py .cif_files/5jvg.cif
 # Deposits a dictionary of subchains and their corresponding coordinates to /coordinate_dicts
 
 def load_cif_from_file():
@@ -47,9 +54,11 @@ def load_cif_from_file():
     # Parse the pdbid argument
     parser   = argparse.ArgumentParser()
     parser.add_argument('id', type=str,)
-    args     = parser.parse_args()
-    pdbid    = str.upper(args.id)
-    filepath = directory + pdbid + ".cif"
+    parser.add_argument('format', type=str)
+    args        = parser.parse_args()
+    pdbid       = str.upper(args.id)
+    parseformat = args.format
+    filepath    = directory + pdbid + ".cif"
 
     # Initializing pdb parsermole
     cifparser = PDB.FastMMCIFParser(QUIET=True)
@@ -79,19 +88,16 @@ def load_cif_from_file():
 
     for namecoordpair in chainCoordinates:
         chain_coordinates_object[namecoordpair[0]] = namecoordpair[1]
-    save_molecule_as_csv(pdbid, chain_coordinates_object)
-
 
     # Sanity check
     for chain in chainids:
         if chain not in [* chain_coordinates_object.keys()]:
             print("{} is missing!".format(chain))
 
-    if not os.path.exists('coordinate_dicts'):
-        try:
-            os.makedirs('coordinate_dicts')
-        except:
-            print("Failed to create deposition directory. Exiting")
+    if parseformat == 'csv':
+        save_molecule_as_csv(pdbid, chain_coordinates_object)
+    else: 
+        pickle_coordinates(pdbid, chain_coordinates_object)
 
 
 load_cif_from_file()
