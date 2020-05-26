@@ -13,8 +13,6 @@
 
 cd ../../../scratch/ex-kdd-1/
 
-echo "We are in $PWD\n"
-
 module load gcc
 module load cuda
 module load python/3.7.3
@@ -30,3 +28,5 @@ for filename in ./cif_models/*; do
     NAME=${NAME%.cif}
     python3 extract_coordinates.py "$NAME" csv
 done
+
+echo "dandy"
