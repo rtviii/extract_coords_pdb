@@ -56,7 +56,7 @@ def load_cif_from_file():
     parser   = argparse.ArgumentParser()
     parser.add_argument('id', type=str,help='pdbid')
     parser.add_argument('format', type=str, help='csv/json/pickle')
-    parser.add_argument('coord_type', type=str,help='np.array or plain list')
+    parser.add_argument('coord_type', type=str,help='nparray or plain list')
     parser.add_argument('precision',type=int, help="number of decimals on an atomic coordinate")
     args        = parser.parse_args()
     pdbid       = args.id
@@ -73,7 +73,7 @@ def load_cif_from_file():
     except:
         print("Failed to open {}".format(filepath))
 
-    print(structure)
+    print("Processing {}".format( structure))
     # Decomposing the structure by chain
     structure_atoms  = PDB.Selection.unfold_entities(structure, "A")
     structure_coords = [atom.get_coord() for atom in structure_atoms]
@@ -91,12 +91,17 @@ def load_cif_from_file():
         chainAtomTuple[1]))), chain_atoms))
 
     chain_coordinates_object = {}
+    print("COORD TYPE {}".format(coord_type))
 
     for namecoordpair in chainCoordinates:
         if coord_type=='list':
             chain_coordinates_object[namecoordpair[0]] = [[ float('%.{}f'.format(precision) % coord) for coord in x.tolist() ] for x in  namecoordpair[1]]
+        elif coord_type=='nparray':
+            chain_coordinates_object[namecoordpair[0]] = namecoordpair[1]
         else:
-            chain_coordinates_object[namecoordpair[0]] = np.around(namecoordpair[1], decimals=precision)
+            print('Unknown coordinate type. Possible: [ list | nparray ]')
+            print('Exiting..')
+            exit
 
     # Sanity check
     for chain in chainids:
@@ -105,14 +110,13 @@ def load_cif_from_file():
 
 
 
-    with open(pdbid+'.json','w') as out:
-        json.dump(chain_coordinates_object, out)
-    
-    # ##############################################
-    # if parseformat == 'csv':
-    #     save_molecule_as_csv(pdbid, chain_coordinates_object)
-    # else: 
-    #     pickle_coordinates(pdbid, chain_coordinates_object)
+    if parseformat == 'csv':
+        save_molecule_as_csv(pdbid, chain_coordinates_object)
+    elif parseformat =='pikle': 
+        pickle_coordinates(pdbid, chain_coordinates_object)
+    elif parseformat == 'json':
+        with open(pdbid+'.json','w') as out:
+            json.dump(chain_coordinates_object, out)
 
 
 load_cif_from_file()
